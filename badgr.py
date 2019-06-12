@@ -9,7 +9,7 @@ import json
 # from requests.packages.urllib3.exceptions import HTTPError
 
 
-BADGR_ACCESS_TOKEN = '9GfvZ9bTXjyYiHVzcT9BfbXUg5wqYp'
+BADGR_ACCESS_TOKEN = 'WMyG6DHCpBzdZmdiwHPer5DB4zsadt'
 
 
 BADGR_BASE_URL = 'https://api.badgr.io/'
@@ -159,19 +159,25 @@ def delete_all_badges(bc_list):
 
 
 def dumpPrizeAssertions(filtered_descriptions):
+  print("In dumpPrizeAssertions")
+  # print(json.loads(filtered_descriptions[0]))
   with open('./prize-assertions.csv', 'a+') as f:
     if not filtered_descriptions:
       print("WTF")
     prize_assertion_list = json.loads(filtered_descriptions[0])
     newpl = []
     for row in prize_assertion_list:
+      print(row)
       line = str(row['timestamp'])+','+row['name']+','+row['email']+','+row['prize']+','+str(row['numEPSpent']+'\n')
       newpl.append(line)
-      f.writelines(newpl)
+    f.writelines(newpl)
 
 
 def delete_badgeclass_description():
   # print(prize_badge)
+  if not prize_badge:
+    LOGGER.info("There are no prize assertions to delete, it seems.")
+    return
   prize_badge['description'] = "No Assertions yet"
   all_badgeclasses['result'] = prize_badge
   data = prize_badge
@@ -201,22 +207,18 @@ def my_init():
 
 if __name__ == '__main__':
   my_init()
-  # ba_list = list_assertions()['result']
   filtered = filter_badgeclasses()
   if not filtered:
     print("There are no prize assertions.. exiting\n")
     sys.exit(0)
+  print("\"Filtered\"")
+  print("========")
   print(filtered)
-  if len(filtered) == 1:
-    prize_badge = filtered[0]
-    prize_badge_id = prize_badge['entityId']
-  else:
-    print("WTF... THE LEN(FILTERED) > 1")
-
-  # print('prize_badge_id: {}, prize_badge: {}'.format(prize_badge_id, prize_badge))
-
+  print("========")
   descriptions = []
   for f in filtered:
+    prize_badge = f
+    prize_badge_id = prize_badge['entityId']
     descriptions.append(f['description'])
 
   filtered_descriptions = filter_descriptions(descriptions)
