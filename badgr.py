@@ -12,7 +12,7 @@ import json
 BADGR_ACCESS_TOKEN = 'WMyG6DHCpBzdZmdiwHPer5DB4zsadt'
 
 
-BADGR_BASE_URL = 'https://api.badgr.io/'
+BADGR_BASE_URL = 'https://badgr.firstcontactcrypto.com/'
 BADGR_BADGECLASS_PATH = 'v2/issuers/{}/badgeclasses'
 BADGR_BADGECLASS_DELETE_PATH = 'v2/badgeclasses/{}'
 BADGR_ASSERTION_PATH = 'v2/badgeclasses/{}/assertions'
@@ -33,7 +33,7 @@ BADGR_AMAZON5_PRIZE_ID = 'JDLH_d5QTz-LzUPYH-5eDw'
 all_badgeclasses = {}
 badgeclass_list = []
 prize_badge_id = 0
-prize_badge = None
+prize_badge = {}
 all_assertions = {}
 
 
@@ -100,7 +100,11 @@ def filter_badgeclasses():
     get_badgeclasses()
   for b in badgeclass_list:
     if b['entityId'] == BADGR_BITCOIN5_PRIZE_ID or b['entityId'] == BADGR_KEEPKEY_PRIZE_ID or b['entityId'] == BADGR_AMAZON5_PRIZE_ID:
+      # print(json.loads(b['description'])[0]['prize'])
+      # for d in json.loads(b['description']):
+        # print(d)
       retlist.append(b)
+  # print("TYPE: {} LIST: {}".format(type(retlist[0]), retlist))
   return retlist
   #   if b[k] == v:
   #     if not inverse:
@@ -113,15 +117,6 @@ def filter_badgeclasses():
   #   prize_badge = retlist[0]
   #   prize_badge_id = prize_badge['entityId']
   # return retlist
-
-
-def filter_descriptions(list_of_descriptions):
-  ret = []
-  for d in list_of_descriptions:
-    if d.startswith('[{'):
-      # print(d)
-      ret.append(d)
-  return ret
 
 
 
@@ -137,11 +132,11 @@ def list_assertions():
 def delete_all_assertions(ba_list):
   for ba in ba_list:
     ba_id = ba['entityId']
-    print("ba_id: {}", ba_id)
+    # print("ba_id: {}", ba_id)
     data = json.dumps({"revocation_reason": "House Cleaning"})
     r = requests.delete(BADGR_BASE_URL + BADGR_ASSERTION_DELETE_PATH.format(ba_id), headers=get_post_headers(), json=data)
     sc = r.status_code
-    print(r.status_code)
+    # print(r.status_code)
     if sc >= 200 and sc < 300:
       print("SUCCESS: {} DELETED".format(ba['entityId']))
     else:
@@ -158,23 +153,22 @@ def delete_all_badges(bc_list):
       LOGGER.error("In delete_all_badges.. ERROR: {} .. {}".format(r.status_code, r.text))
 
 
-def dumpPrizeAssertions(filtered_descriptions):
-  print("In dumpPrizeAssertions")
-  # print(json.loads(filtered_descriptions[0]))
-  with open('./prize-assertions.csv', 'a+') as f:
-    if not filtered_descriptions:
-      print("WTF")
-    prize_assertion_list = json.loads(filtered_descriptions[0])
-    newpl = []
-    for row in prize_assertion_list:
-      print(row)
-      line = str(row['timestamp'])+','+row['name']+','+row['email']+','+row['prize']+','+str(row['numEPSpent']+'\n')
-      newpl.append(line)
-    f.writelines(newpl)
+# def dumpPrizeAssertions(filtered_descriptions):
+#   # print("In dumpPrizeAssertions")
+#   # print(json.loads(filtered_descriptions[0]))
+#   with open('./prize-assertions.csv', 'a+') as f:
+#     for fd in filtered_descriptions:
+
+#     prize_assertion_list = json.loads(filtered_descriptions[0])
+#     newpl = []
+#     for row in prize_assertion_list:
+#       # print(row)
+#       line = str(row['timestamp'])+','+row['name']+','+row['email']+','+row['prize']+','+str(row['numEPSpent']+'\n')
+#       newpl.append(line)
+#     f.writelines(newpl)
 
 
 def delete_badgeclass_description():
-  # print(prize_badge)
   if not prize_badge:
     LOGGER.info("There are no prize assertions to delete, it seems.")
     return
@@ -184,7 +178,7 @@ def delete_badgeclass_description():
   # print("+++++")
   # print(json.dumps(data))
   # print("BADGE CLASS ID: {}".format(prize_badge_id))
-  rep = requests.put("https://api.badgr.io/v2/badgeclasses/{}".format(prize_badge_id), headers=get_base_headers(), json=data)
+  rep = requests.put("https://badgr.firstcontactcrypto.com/v2/badgeclasses/{}".format(prize_badge_id), headers=get_base_headers(), json=data)
   if not log_if_raised(rep, data):
     LOGGER.info('SUCCESS the prize badgclass has been updated')
 
@@ -203,68 +197,36 @@ def my_init():
       pass
   os.chdir(cron_dir)
 
+def toCSVFile(filtered_badges):
+  lines = []
+  for fb in filtered_badges:
+    prizeAssertions = json.loads(fb['description'])
+
+    for pa in prizeAssertions:
+      line = str(pa['timestamp']) + "," + pa['name'] + "," + pa['email'] + "," + pa['prize'] + "," + str(pa['numEPSpent']) + '\n'
+      # print(type(line))
+      lines.append(line)
+  return lines
+  # print(lines)
+
+
 
 
 if __name__ == '__main__':
   my_init()
-  filtered = filter_badgeclasses()
-  if not filtered:
-    print("There are no prize assertions.. exiting\n")
-    sys.exit(0)
-  print("\"Filtered\"")
-  print("========")
-  print(filtered)
-  print("========")
-  descriptions = []
-  for f in filtered:
-    prize_badge = f
-    prize_badge_id = prize_badge['entityId']
-    descriptions.append(f['description'])
+  filtered_badges = filter_badgeclasses()
+  lines = toCSVFile(filtered_badges)[0]
+  f = open('./prize-assertions.csv', 'w')
+  for line in lines:
+    print(type(line))
+    # f.write(line)
 
-  filtered_descriptions = filter_descriptions(descriptions)
-  dumpPrizeAssertions(filtered_descriptions)
+
+  f.flush()
+  f.close()
+  # f.writelines(lines)
+  # f.flush()
+  # f.close()
+  # dumpPrizeAssertions(lines)
   # delete_badgeclass_description()
 
-
-
-
-
-
-
-    #   $.ajax({
-    #   method: "PUT",
-    #   dataType: "json",
-    #   processData: false,
-    #   contentType: "application/json",
-    #   url: BADGR_BASE_URL + format(BADGR_BADGECLASS_UPDATE_PATH, bp.entityId),
-    #   data: JSON.stringify(bp),
-    #   success: function(data, status, xhr) {
-    #     PRINT(
-    #       "SUCCESS: In prizeAccounting: {0}",
-    #       JSON.stringify(data)
-    #     );
-    #   },
-    #   error: function(xhr, status, errMsg) {
-    #     success = false
-    #     PRINT(
-    #       "ERROR: In prizeAccounting.. badgeclass update FAILED! {0} {1}",
-    #       status,
-    #       errMsg
-    #     );
-    #   },
-    #   beforeSend: function(xhr) {
-    #     xhr.setRequestHeader("Authorization", "Bearer " + BADGR_ACCESS_TOKEN);
-    #   }
-    # });
-
-
-
-  # print(ba_list)
-  # # rbc_list = list_badgeclasses()['result']
-  # # bc_list = filter_badgeclasses(rbc_list)
-  # # delete_all_assertions(ba_list)
-  # # delete_all_badges(bc_list)
-  # # print(ba_list)
-  # # print (descriptions)
-  # # print("")
-  # # print(filter_descriptions(descriptions))

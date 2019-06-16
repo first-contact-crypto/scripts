@@ -35,7 +35,7 @@ LOG.info("access_token: {} refresh_token: {}".format(access_token, refresh_token
 # curl -X POST 'https://api.badgr.io/o/token' -d "grant_type=refresh_token&refresh_token=wdISNqjogRN0eu4WN5HcyDnuseopPF"
 
 try:
-    resp = requests.post('https://api.badgr.io/o/token', data={'grant_type':'refresh', 'refresh_token':refresh_token})
+    resp = requests.post('https://badgr.firstcontactcrypto.com/o/token', data={'grant_type':'refresh', 'refresh_token':refresh_token})
     resp.raise_for_status()
 except HTTPError as http_err:
     LOG.error("HTTP error occurred: {http_err}")
